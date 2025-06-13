@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package v1;
+
+import "google/protobuf/empty.proto";       // 导入空消息
+import "apiserver/v1/healthz.proto";        // 健康检查消息定义
+
+option go_package = "github.com/xiahuaxiahua0616/ifonly/pkg/api/apiserver/v1;v1";
+
+service IfOnly {
+    // Healthz健康检查
+    rpc Healthz(google.protobuf.Empty) returns (HealthzResponse) {}
+}

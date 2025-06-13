@@ -65,20 +65,20 @@ func run(opts *options.ServerOptions) error {
 
 	// 获取应用配置.
 	// 将命令行选项和应用配置分开，可以更加灵活的处理 2 种不同类型的配置.
-	// cfg, err := opts.Config()
-	// if err != nil {
-	// 	return err
-	// }
+	cfg, err := opts.Config()
+	if err != nil {
+		return err
+	}
 
 	// 创建服务器实例.
 	// 注意这里是联合服务器，因为可能同时启动多个不同类型的服务器.
-	// server, err := cfg.NewUnionServer()
-	// if err != nil {
-	// 	return err
-	// }
+	server, err := cfg.NewUnionServer()
+	if err != nil {
+		return err
+	}
 
 	// 启动服务器
-	// return server.Run()
+	server.Run()
 	return nil
 }
 

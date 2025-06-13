@@ -1,10 +1,22 @@
 package apiserver
 
 import (
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	genericoptions "github.com/onexstack/onexstack/pkg/options"
+	"github.com/onexstack/onexstack/pkg/store/where"
+	"github.com/xiahuaxiahua0616/ifonly/internal/apiserver/biz"
+	"github.com/xiahuaxiahua0616/ifonly/internal/apiserver/store"
+	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/contextx"
+	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/log"
+	mw "github.com/xiahuaxiahua0616/ifonly/internal/pkg/middleware/grpc"
 	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/server"
+	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/validation"
+	"gorm.io/gorm"
 )
 
 const (
@@ -31,6 +43,20 @@ type Config struct {
 	MySQLOptions *genericoptions.MySQLOptions
 }
 
+// UserRetriever 定义一个用户数据获取器. 用来获取用户信息.
+type UserRetriever struct {
+	store store.IStore
+}
+
+// ServerConfig 包含服务器的核心依赖和配置.
+type ServerConfig struct {
+	cfg       *Config
+	biz       biz.IBiz
+	val       *validation.Validator
+	retriever mw.UserRetriever
+	// authz     *auth.Authz
+}
+
 // UnionServer 定义一个联合服务器. 根据 ServerMode 决定要启动的服务器类型.
 //
 // 联合服务器分为以下 2 大类：
@@ -45,92 +71,93 @@ type UnionServer struct {
 	srv server.Server
 }
 
-// ServerConfig 包含服务器的核心依赖和配置.
-// type ServerConfig struct {
-// 	cfg       *Config
-// 	biz       biz.IBiz
-// 	val       *validation.Validator
-// 	retriever mw.UserRetriever
-// 	authz     *auth.Authz
-// }
+func (s *UnionServer) Run() {
+	// 打印一条日志，用来提示 GRPC 服务已经起来，方便排障
+	go s.srv.RunOrDie()
 
-// // NewUnionServer 根据配置创建联合服务器.
-// func (cfg *Config) NewUnionServer() (*UnionServer, error) {
-// 	// 注册租户解析函数，通过上下文获取用户 ID
-// 	//nolint: gocritic
-// 	where.RegisterTenant("userID", func(ctx context.Context) string {
-// 		return contextx.UserID(ctx)
-// 	})
+	// 创建一个 os.Signal 类型的 channel，用于接收系统信号
+	quit := make(chan os.Signal, 1)
+	// 当执行 kill 命令时（不带参数），默认会发送 syscall.SIGTERM 信号
+	// 使用 kill -2 命令会发送 syscall.SIGINT 信号（例如按 CTRL+C 触发）
+	// 使用 kill -9 命令会发送 syscall.SIGKILL 信号，但 SIGKILL 信号无法被捕获，因此无需监听和处理
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	// 阻塞程序，等待从 quit channel 中接收到信号
+	<-quit
 
-// 	// 初始化 token 包的签名密钥、认证 Key 及 Token 默认过期时间
-// 	token.Init(cfg.JWTKey, known.XUserID, cfg.Expiration)
+	log.Infow("Shutting down server ...")
 
-// 	log.Infow("Initializing federation server", "server-mode", cfg.ServerMode)
+	// 优雅关闭服务
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-// 	// 创建服务配置，这些配置可用来创建服务器
-// 	srv, err := InitializeWebServer(cfg)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	// 先关闭依赖的服务，再关闭被依赖的服务
+	s.srv.GracefulStop(ctx)
 
-// 	return &UnionServer{srv: srv}, nil
-// }
+	log.Infow("Server exited")
+}
 
-// // Run 运行应用.
-// func (s *UnionServer) Run() error {
-// 	go s.srv.RunOrDie()
+// NewUnionServer 根据配置创建联合服务器.
+func (cfg *Config) NewUnionServer() (*UnionServer, error) {
+	// 注册租户解析函数，通过上下文获取用户 ID
+	//nolint: gocritic
+	where.RegisterTenant("userID", func(ctx context.Context) string {
+		return contextx.UserID(ctx)
+	})
 
-// 	// 创建一个 os.Signal 类型的 channel，用于接收系统信号
-// 	quit := make(chan os.Signal, 1)
-// 	// 当执行 kill 命令时（不带参数），默认会发送 syscall.SIGTERM 信号
-// 	// 使用 kill -2 命令会发送 syscall.SIGINT 信号（例如按 CTRL+C 触发）
-// 	// 使用 kill -9 命令会发送 syscall.SIGKILL 信号，但 SIGKILL 信号无法被捕获，因此无需监听和处理
-// 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-// 	// 阻塞程序，等待从 quit channel 中接收到信号
-// 	<-quit
+	// 创建服务配置，这些配置可用来创建服务器
+	serverConfig, err := cfg.NewServerConfig()
+	if err != nil {
+		return nil, err
+	}
 
-// 	log.Infow("Shutting down server ...")
+	log.Infow("Initializing federation server", "server-mode", cfg.ServerMode)
 
-// 	// 优雅关闭服务
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
+	// 根据服务模式创建对应的服务实例
+	// 实际企业开发中，可以根据需要只选择一种服务器模式.
+	// 这里为了方便给你展示，通过 cfg.ServerMode 同时支持了 Gin 和 GRPC 2 种服务器模式.
+	// 默认为 gRPC 服务器模式.
+	var srv server.Server
+	switch cfg.ServerMode {
+	case GinServerMode:
+		// srv, err = serverConfig.NewGinServer(), nil
+	default:
+		srv, err = serverConfig.NewGRPCServerOr()
+	}
+	if err != nil {
+		return nil, err
+	}
 
-// 	// 先关闭依赖的服务，再关闭被依赖的服务
-// 	s.srv.GracefulStop(ctx)
+	return &UnionServer{srv: srv}, nil
+}
 
-// 	log.Infow("Server exited")
-// 	return nil
-// }
+// NewServerConfig 创建一个 *ServerConfig 实例.
+// 进阶：这里其实可以使用依赖注入的方式，来创建 *ServerConfig.
+func (cfg *Config) NewServerConfig() (*ServerConfig, error) {
+	// 初始化数据库连接
+	db, err := cfg.NewDB()
+	if err != nil {
+		return nil, err
+	}
+	store := store.NewStore(db)
 
-// // NewDB 创建一个 *gorm.DB 实例.
-// func (cfg *Config) NewDB() (*gorm.DB, error) {
-// 	return cfg.MySQLOptions.NewDB()
-// }
+	// 初始化权限认证模块
+	// authz, err := auth.NewAuthz(store.DB(context.TODO()))
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-// // UserRetriever 定义一个用户数据获取器. 用来获取用户信息.
-// type UserRetriever struct {
-// 	store store.IStore
-// }
+	return &ServerConfig{
+		cfg: cfg,
+		biz: biz.NewBiz(store),
+		val: validation.New(store),
+		retriever: &UserRetriever{
+			store: store,
+		},
+		// authz: authz,
+	}, nil
+}
 
-// // GetUser 根据用户 ID 获取用户信息.
-// func (r *UserRetriever) GetUser(ctx context.Context, userID string) (*model.UserM, error) {
-// 	return r.store.User().Get(ctx, where.F("userID", userID))
-// }
-
-// // ProvideDB 根据配置提供一个数据库实例。
-// func ProvideDB(cfg *Config) (*gorm.DB, error) {
-// 	return cfg.NewDB()
-// }
-
-// func NewWebServer(serverMode string, serverConfig *ServerConfig) (server.Server, error) {
-// 	// 根据服务模式创建对应的服务实例
-// 	// 实际企业开发中，可以根据需要只选择一种服务器模式.
-// 	// 这里为了方便给你展示，通过 cfg.ServerMode 同时支持了 Gin 和 GRPC 2 种服务器模式.
-// 	// 默认为 gRPC 服务器模式.
-// 	switch serverMode {
-// 	case GinServerMode:
-// 		return serverConfig.NewGinServer(), nil
-// 	default:
-// 		return serverConfig.NewGRPCServerOr()
-// 	}
-// }
+// NewDB 创建一个 *gorm.DB 实例.
+func (cfg *Config) NewDB() (*gorm.DB, error) {
+	return cfg.MySQLOptions.NewDB()
+}

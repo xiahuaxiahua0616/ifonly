@@ -1,0 +1,21 @@
+syntax = "proto3";
+package v1;
+option go_package = "github.com/xiahuaxiahua0616/ifonly/pkg/api/apiserver/v1;v1";
+
+enum ServiceStatus {
+    Healthy = 0;
+
+    Unhealthy = 1;
+}
+
+// 一旦投入使用，数字标识符就不能修改，谨防其他人已经根据这个使用了，降低不必要的麻烦
+message HealthzResponse {
+    // status 表示服务的健康状态
+    ServiceStatus status = 1;
+
+    // timestamp 表示请求的时间戳
+    string timestamp = 2;
+
+    // message 表示可选的状态消息，描述服务健康的更多信息
+    string message = 3;
+}

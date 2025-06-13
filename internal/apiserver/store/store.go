@@ -18,8 +18,8 @@ type IStore interface {
 	DB(ctx context.Context, wheres ...where.Where) *gorm.DB
 	TX(ctx context.Context, fn func(ctx context.Context) error) error
 
-	User()
-	Post()
+	User() UserStore
+	// Post()
 }
 
 // transactionKey 用于在 context.Context 中存储事务上下文的键.
@@ -63,6 +63,6 @@ func (store *datastore) TX(ctx context.Context, fn func(ctx context.Context) err
 	)
 }
 
-// func (store *datastore) User() UserStore {
-// 	return newUserStore(store)
-// }
+func (store *datastore) User() UserStore {
+	return newUserStore(store)
+}
