@@ -1,11 +1,11 @@
 package app
 
 import (
-	"github.com/onexstack/onexstack/pkg/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/xiahuaxiahua0616/ifonly/cmd/ifonly-apiserver/app/options"
 	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/log"
+	"github.com/xiahuaxiahua0616/ifonly/pkg/version"
 )
 
 var configFile string // 配置文件路径
