@@ -1,0 +1,104 @@
+package apiserver
+
+import (
+	"context"
+
+	"github.com/gin-contrib/pprof"
+	"github.com/gin-gonic/gin"
+	"github.com/onexstack/onexstack/pkg/core"
+	handler "github.com/xiahuaxiahua0616/ifonly/internal/apiserver/handler/http"
+	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/errno"
+	mw "github.com/xiahuaxiahua0616/ifonly/internal/pkg/middleware/gin"
+	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/server"
+)
+
+// 确保 *ginServer 实现了 server.Server 接口.
+var _ server.Server = (*ginServer)(nil)
+
+type ginServer struct {
+	srv server.Server
+}
+
+// GracefulStop implements server.Server.
+func (s *ginServer) GracefulStop(ctx context.Context) {
+	s.srv.GracefulStop(ctx)
+}
+
+// RunOrDie implements server.Server.
+func (s *ginServer) RunOrDie() {
+	s.srv.RunOrDie()
+}
+
+func (c *ServerConfig) NewGinServer() server.Server {
+	engine := gin.New()
+
+	engine.Use(gin.Recovery(), mw.NoCache, mw.Cors, mw.Secure, mw.RequestIDMiddleware())
+
+	c.InstallRESTAPI(engine)
+
+	httpsrv := server.NewHTTPServer(c.cfg.HTTPOptions, c.cfg.TLSOptions, engine)
+
+	return &ginServer{
+		srv: httpsrv,
+	}
+}
+
+func (c *ServerConfig) InstallRESTAPI(engine *gin.Engine) {
+	// 注册业务无关的 API 接口
+	InstallGenericAPI(engine)
+
+	// 创建核心业务处理器
+	handler := handler.NewHandler(c.biz, c.val)
+
+	// 注册健康检查接口
+	engine.GET("/healthz", handler.Healthz)
+
+	// 注册用户登录和令牌刷新接口。这2个接口比较简单，所以没有 API 版本
+	// engine.POST("/login", handler.Login)
+	// 注意：认证中间件要在 handler.RefreshToken 之前加载
+	// engine.PUT("/refresh-token", mw.AuthnMiddleware(c.retriever), handler.RefreshToken)
+
+	// authMiddlewares := []gin.HandlerFunc{mw.AuthnMiddleware(c.retriever), mw.AuthzMiddleware(c.authz)}
+	authMiddlewares := []gin.HandlerFunc{}
+	// 注册 v1 版本 API 路由分组
+	v1 := engine.Group("/v1")
+	{
+		// 用户相关路由
+		userv1 := v1.Group("/users")
+		// {
+		// 	// 创建用户。这里要注意：创建用户是不用进行认证和授权的
+		// 	userv1.POST("", handler.CreateUser)
+		userv1.Use(authMiddlewares...)
+		// 	userv1.PUT(":userID/change-password", handler.ChangePassword) // 修改用户密码
+		// 	userv1.PUT(":userID", handler.UpdateUser)                     // 更新用户信息
+		// 	userv1.DELETE(":userID", handler.DeleteUser)                  // 删除用户
+		// 	userv1.GET(":userID", handler.GetUser)                        // 查询用户详情
+		// 	userv1.GET("", handler.ListUser)                              // 查询用户列表.
+		// }
+
+		// // 博客相关路由
+		// postv1 := v1.Group("/posts", authMiddlewares...)
+		// {
+		// 	postv1.POST("", handler.CreatePost)       // 创建博客
+		// 	postv1.PUT(":postID", handler.UpdatePost) // 更新博客
+		// 	postv1.DELETE("", handler.DeletePost)     // 删除博客
+		// 	postv1.GET(":postID", handler.GetPost)    // 查询博客详情
+		// 	postv1.GET("", handler.ListPost)          // 查询博客列表
+		// }
+	}
+}
+
+// InstallGenericAPI 注册业务无关的路由，例如 pprof、404 处理等.
+func InstallGenericAPI(engine *gin.Engine) {
+	// 注册 pprof 路由
+	pprof.Register(engine)
+
+	// 注册 404 路由处理
+	engine.NoRoute(func(c *gin.Context) {
+		core.WriteResponse(c, errno.ErrPageNotFound, nil)
+	})
+}
+
+// 这里主要是实现了鸭子类型server.server，必须实现GracefulStop、RunOrDie方法
+// 给gin服务添加自己的方法 1. 开启gin服务NewGinServer 2. 注册RESTAPI
+// 上述两个步骤不仅是在http亦或者grpc，也许还有其他的方法都要根据此风格设计。

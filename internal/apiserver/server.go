@@ -119,7 +119,7 @@ func (cfg *Config) NewUnionServer() (*UnionServer, error) {
 	var srv server.Server
 	switch cfg.ServerMode {
 	case GinServerMode:
-		// srv, err = serverConfig.NewGinServer(), nil
+		srv, err = serverConfig.NewGinServer(), nil
 	default:
 		srv, err = serverConfig.NewGRPCServerOr()
 	}
