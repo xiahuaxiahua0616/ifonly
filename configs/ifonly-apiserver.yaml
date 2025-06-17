@@ -1,4 +1,4 @@
-server-mode: gin
+server-mode: grpc-gateway
 jwt-key: Rtg8BPKNEf2mB4mgvKONGPZZQSaJWNLijxR42qRgq0iBb5
 log:
   # 是否开启 caller，如果开启会在日志中显示调用日志所在的文件和行号

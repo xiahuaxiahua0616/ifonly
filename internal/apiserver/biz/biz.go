@@ -1,17 +1,24 @@
 package biz
 
-import "github.com/xiahuaxiahua0616/ifonly/internal/apiserver/store"
+import (
+	postv1 "github.com/xiahuaxiahua0616/ifonly/internal/apiserver/biz/v1/post"
+	userv1 "github.com/xiahuaxiahua0616/ifonly/internal/apiserver/biz/v1/user"
+	"github.com/xiahuaxiahua0616/ifonly/internal/apiserver/store"
+	"github.com/xiahuaxiahua0616/ifonly/pkg/auth"
+)
 
 type IBiz interface {
 	// 获取用户业务
-	UserV1()
-	PostV1()
+	// 获取用户业务接口.
+	UserV1() userv1.UserBiz
+	// 获取帖子业务接口.
+	PostV1() postv1.PostBiz
 }
 
 // biz 是 IBiz 的一个具体实现.
 type biz struct {
 	store store.IStore
-	// authz *auth.Authz
+	authz *auth.Authz
 }
 
 // 确保 biz 实现了 IBiz 接口.
@@ -23,11 +30,11 @@ func NewBiz(store store.IStore) *biz {
 }
 
 // UserV1 返回一个实现了 UserBiz 接口的实例.
-func (b *biz) UserV1() {
-
+func (b *biz) UserV1() userv1.UserBiz {
+	return userv1.New(b.store, b.authz)
 }
 
 // PostV1 返回一个实现了 PostBiz 接口的实例.
-func (b *biz) PostV1() {
-
+func (b *biz) PostV1() postv1.PostBiz {
+	return postv1.New(b.store)
 }

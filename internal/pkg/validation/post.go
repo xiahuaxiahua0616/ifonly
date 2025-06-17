@@ -1,8 +1,13 @@
 package validation
 
 import (
+	"context"
+
+	validation "github.com/go-ozzo/ozzo-validation"
+	"github.com/go-ozzo/ozzo-validation/is"
 	genericvalidation "github.com/onexstack/onexstack/pkg/validation"
 	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/errno"
+	apiv1 "github.com/xiahuaxiahua0616/ifonly/pkg/api/apiserver/v1"
 )
 
 // Validate 校验字段的有效性.
@@ -31,29 +36,29 @@ func (v *Validator) ValidatePostRules() genericvalidation.Rules {
 }
 
 // ValidateCreatePostRequest 校验 CreatePostRequest 结构体的有效性.
-// func (v *Validator) ValidateCreatePostRequest(ctx context.Context, rq *apiv1.CreatePostRequest) error {
-// 	return genericvalidation.ValidateAllFields(rq, v.ValidatePostRules())
-// }
+func (v *Validator) ValidateCreatePostRequest(ctx context.Context, rq *apiv1.CreatePostRequest) error {
+	return genericvalidation.ValidateAllFields(rq, v.ValidatePostRules())
+}
 
-// // ValidateUpdatePostRequest 校验更新用户请求.
-// func (v *Validator) ValidateUpdatePostRequest(ctx context.Context, rq *apiv1.UpdatePostRequest) error {
-// 	return genericvalidation.ValidateAllFields(rq, v.ValidatePostRules())
-// }
+// ValidateUpdatePostRequest 校验更新用户请求.
+func (v *Validator) ValidateUpdatePostRequest(ctx context.Context, rq *apiv1.UpdatePostRequest) error {
+	return genericvalidation.ValidateAllFields(rq, v.ValidatePostRules())
+}
 
-// // ValidateDeletePostRequest 校验 DeletePostRequest 结构体的有效性.
-// func (v *Validator) ValidateDeletePostRequest(ctx context.Context, rq *apiv1.DeletePostRequest) error {
-// 	return genericvalidation.ValidateAllFields(rq, v.ValidatePostRules())
-// }
+// ValidateDeletePostRequest 校验 DeletePostRequest 结构体的有效性.
+func (v *Validator) ValidateDeletePostRequest(ctx context.Context, rq *apiv1.DeletePostRequest) error {
+	return genericvalidation.ValidateAllFields(rq, v.ValidatePostRules())
+}
 
-// // ValidateGetPostRequest 校验 GetPostRequest 结构体的有效性.
-// func (v *Validator) ValidateGetPostRequest(ctx context.Context, rq *apiv1.GetPostRequest) error {
-// 	return genericvalidation.ValidateAllFields(rq, v.ValidatePostRules())
-// }
+// ValidateGetPostRequest 校验 GetPostRequest 结构体的有效性.
+func (v *Validator) ValidateGetPostRequest(ctx context.Context, rq *apiv1.GetPostRequest) error {
+	return genericvalidation.ValidateAllFields(rq, v.ValidatePostRules())
+}
 
-// // ValidateListPostRequest 校验 ListPostRequest 结构体的有效性.
-// func (v *Validator) ValidateListPostRequest(ctx context.Context, rq *apiv1.ListPostRequest) error {
-// 	if err := validation.Validate(rq.GetTitle(), validation.Length(5, 100), is.URL); err != nil {
-// 		return errno.ErrInvalidArgument.WithMessage(err.Error())
-// 	}
-// 	return genericvalidation.ValidateSelectedFields(rq, v.ValidatePostRules(), "Offset", "Limit")
-// }
+// ValidateListPostRequest 校验 ListPostRequest 结构体的有效性.
+func (v *Validator) ValidateListPostRequest(ctx context.Context, rq *apiv1.ListPostRequest) error {
+	if err := validation.Validate(rq.GetTitle(), validation.Length(5, 100), is.URL); err != nil {
+		return errno.ErrInvalidArgument.WithMessage(err.Error())
+	}
+	return genericvalidation.ValidateSelectedFields(rq, v.ValidatePostRules(), "Offset", "Limit")
+}

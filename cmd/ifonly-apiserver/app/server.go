@@ -30,7 +30,7 @@ func NewIfOnlyCommand() *cobra.Command {
 	}
 
 	// 初始化配置函数，在每个命令运行时调用
-	// 这里代码是异步的
+	// 这里代码是异步的，主要是用来读配置文件的
 	cobra.OnInitialize(onInitialize)
 
 	// cobra 支持持久性标志(PersistentFlag)，该标志可用于它所分配的命令以及该命令下的每个子命令
@@ -103,3 +103,9 @@ func logOptions() *log.Options {
 	}
 	return opts
 }
+
+// 使用cobra就是为了他提供的命令提示，用这个构建后，在系统中就可以使用 ifony-apisever 就像 git和docker这类似的命令构建
+// 因为我们用了pflag添加了config配置，但是我们仍然得提供 --help的方法，教别人使用。
+// 理论上是可以自己实现，不过有优秀的包就用它，不用自己造轮子。
+// 使用pflag知道了用什么配置文件，再使用viper解析配置文件
+// 根据配置文件生成gin服务还是grpc服务

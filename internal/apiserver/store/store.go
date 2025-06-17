@@ -19,7 +19,7 @@ type IStore interface {
 	TX(ctx context.Context, fn func(ctx context.Context) error) error
 
 	User() UserStore
-	// Post()
+	Post() PostStore
 }
 
 // transactionKey 用于在 context.Context 中存储事务上下文的键.
@@ -29,7 +29,7 @@ type datastore struct {
 	core *gorm.DB
 }
 
-// var _ IStore = (*datastore)(nil)
+var _ IStore = (*datastore)(nil)
 
 func NewStore(db *gorm.DB) *datastore {
 	once.Do(func() {
@@ -63,6 +63,12 @@ func (store *datastore) TX(ctx context.Context, fn func(ctx context.Context) err
 	)
 }
 
+// Users 返回一个实现了 UserStore 接口的实例.
 func (store *datastore) User() UserStore {
 	return newUserStore(store)
+}
+
+// Posts 返回一个实现了 PostStore 接口的实例.
+func (store *datastore) Post() PostStore {
+	return newPostStore(store)
 }

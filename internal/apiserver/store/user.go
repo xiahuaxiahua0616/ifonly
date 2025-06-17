@@ -23,7 +23,7 @@ type UserStore interface {
 }
 
 // UserExpansion 定义了用户操作的附加方法.
-type UserExpansion interface{}
+type UserExpansion any
 
 // userStore 是 UserStore 接口的实现.
 type userStore struct {

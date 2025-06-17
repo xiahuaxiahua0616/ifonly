@@ -54,7 +54,7 @@ func (c *ServerConfig) InstallRESTAPI(engine *gin.Engine) {
 	engine.GET("/healthz", handler.Healthz)
 
 	// 注册用户登录和令牌刷新接口。这2个接口比较简单，所以没有 API 版本
-	// engine.POST("/login", handler.Login)
+	engine.POST("/login", handler.Login)
 	// 注意：认证中间件要在 handler.RefreshToken 之前加载
 	// engine.PUT("/refresh-token", mw.AuthnMiddleware(c.retriever), handler.RefreshToken)
 
@@ -65,26 +65,26 @@ func (c *ServerConfig) InstallRESTAPI(engine *gin.Engine) {
 	{
 		// 用户相关路由
 		userv1 := v1.Group("/users")
-		// {
-		// 	// 创建用户。这里要注意：创建用户是不用进行认证和授权的
-		// 	userv1.POST("", handler.CreateUser)
-		userv1.Use(authMiddlewares...)
-		// 	userv1.PUT(":userID/change-password", handler.ChangePassword) // 修改用户密码
-		// 	userv1.PUT(":userID", handler.UpdateUser)                     // 更新用户信息
-		// 	userv1.DELETE(":userID", handler.DeleteUser)                  // 删除用户
-		// 	userv1.GET(":userID", handler.GetUser)                        // 查询用户详情
-		// 	userv1.GET("", handler.ListUser)                              // 查询用户列表.
-		// }
+		{
+			// 创建用户。这里要注意：创建用户是不用进行认证和授权的
+			userv1.POST("", handler.CreateUser)
+			userv1.Use(authMiddlewares...)
+			userv1.PUT(":userID/change-password", handler.ChangePassword) // 修改用户密码
+			userv1.PUT(":userID", handler.UpdateUser)                     // 更新用户信息
+			userv1.DELETE(":userID", handler.DeleteUser)                  // 删除用户
+			userv1.GET(":userID", handler.GetUser)                        // 查询用户详情
+			userv1.GET("", handler.ListUser)                              // 查询用户列表.
+		}
 
-		// // 博客相关路由
-		// postv1 := v1.Group("/posts", authMiddlewares...)
-		// {
-		// 	postv1.POST("", handler.CreatePost)       // 创建博客
-		// 	postv1.PUT(":postID", handler.UpdatePost) // 更新博客
-		// 	postv1.DELETE("", handler.DeletePost)     // 删除博客
-		// 	postv1.GET(":postID", handler.GetPost)    // 查询博客详情
-		// 	postv1.GET("", handler.ListPost)          // 查询博客列表
-		// }
+		// 博客相关路由
+		postv1 := v1.Group("/posts", authMiddlewares...)
+		{
+			postv1.POST("", handler.CreatePost)       // 创建博客
+			postv1.PUT(":postID", handler.UpdatePost) // 更新博客
+			postv1.DELETE("", handler.DeletePost)     // 删除博客
+			postv1.GET(":postID", handler.GetPost)    // 查询博客详情
+			postv1.GET("", handler.ListPost)          // 查询博客列表
+		}
 	}
 }
 

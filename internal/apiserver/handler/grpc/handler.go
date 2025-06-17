@@ -6,7 +6,7 @@ import (
 )
 
 type Handler struct {
-	apiv1.UnimplementedIfOnlyServer
+	apiv1.UnimplementedIfonlyServer
 
 	biz biz.IBiz
 }

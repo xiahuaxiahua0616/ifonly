@@ -103,3 +103,9 @@ func (o *ServerOptions) Config() (*apiserver.Config, error) {
 		MySQLOptions: o.MySQLOptions,
 	}, nil
 }
+
+// 系统配置
+// 这里提供了系统模式，是Gin、GRPC、grpc-gateway
+// http端口、rpc端口，未来的redis配置都可以添加上去
+// 不仅配置默认数值，使用pflag支持运行时提供配置，比如使用的配置文件 ./ifonly-apiserver -c configpath 既可以更改使用的配置文件地址
+// 还提供验证配置文件的准确性合法性，配置文件没问题才会减少运行出现的诡异问题。

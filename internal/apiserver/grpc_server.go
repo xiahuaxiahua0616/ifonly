@@ -5,13 +5,13 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	genericvalidation "github.com/onexstack/onexstack/pkg/validation"
+	handler "github.com/xiahuaxiahua0616/ifonly/internal/apiserver/handler/grpc"
 	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/server"
 	"google.golang.org/grpc"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/selector"
 
-	handler "github.com/xiahuaxiahua0616/ifonly/internal/apiserver/handler/grpc"
 	mw "github.com/xiahuaxiahua0616/ifonly/internal/pkg/middleware/grpc"
 	apiv1 "github.com/xiahuaxiahua0616/ifonly/pkg/api/apiserver/v1"
 )
@@ -44,7 +44,7 @@ func (c *ServerConfig) NewGRPCServerOr() (server.Server, error) {
 			mw.AuthnBypasswInterceptor(),
 			// 请求默认值设置拦截器
 			mw.DefaulterInterceptor(),
-			// selector.UnaryServerInterceptor(NewAuthnWhiteListMatcher()),
+			// selector.UnaryServerInterceptor(mw.AuthnInterceptor(c.retriever), NewAuthnWhiteListMatcher()),
 			// 数据校验拦截器
 			mw.ValidatorInterceptor(genericvalidation.NewValidator(c.val)),
 			// 授权拦截
@@ -58,7 +58,7 @@ func (c *ServerConfig) NewGRPCServerOr() (server.Server, error) {
 		c.cfg.TLSOptions,
 		serverOptions,
 		func(s grpc.ServiceRegistrar) {
-			apiv1.RegisterIfOnlyServer(s, handler.NewHandler(c.biz))
+			apiv1.RegisterIfonlyServer(s, handler.NewHandler(c.biz))
 		},
 	)
 	if err != nil {
@@ -82,8 +82,7 @@ func (c *ServerConfig) NewGRPCServerOr() (server.Server, error) {
 		c.cfg.GRPCOptions,
 		c.cfg.TLSOptions,
 		func(mux *runtime.ServeMux, conn *grpc.ClientConn) error {
-			return nil
-			// return apiv1.RegisterifonlyHandler(context.Background(), mux, conn)
+			return apiv1.RegisterIfonlyHandler(context.Background(), mux, conn)
 		},
 	)
 	if err != nil {
