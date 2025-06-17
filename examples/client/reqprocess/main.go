@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/xiahuaxiahua0616/miniblog/examples/helper"
-	"github.com/xiahuaxiahua0616/miniblog/internal/pkg/known"
+
+	"github.com/xiahuaxiahua0616/ifonly/examples/client/helper"
+	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/known"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
-	apiv1 "github.com/xiahuaxiahua0616/miniblog/pkg/api/apiserver/v1"
+	apiv1 "github.com/xiahuaxiahua0616/ifonly/pkg/api/apiserver/v1"
 )
 
 var (
@@ -32,7 +33,7 @@ func main() {
 	}
 	defer conn.Close() // 确保连接在函数结束时关闭
 
-	client := apiv1.NewMiniBlogClient(conn) // 创建 MiniBlog 客户端
+	client := apiv1.NewIfonlyClient(conn) // 创建 ifonly 客户端
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 

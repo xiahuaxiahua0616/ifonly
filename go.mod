@@ -13,7 +13,6 @@ require (
 	github.com/onexstack/onexstack v0.0.2
 	github.com/onexstack/protoc-gen-defaults v0.0.2
 	github.com/prometheus/common v0.55.0
-	github.com/xiahuaxiahua0616/miniblog v0.0.0-20250611083446-aa94314e7657
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.37.0
 	golang.org/x/sync v0.13.0

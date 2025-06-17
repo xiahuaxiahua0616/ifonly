@@ -41,6 +41,7 @@ func (s *HTTPServer) RunOrDie() {
 	log.Infow("Start to listening the incoming requests", "protocol", protocolName(s.srv), "addr", s.srv.Addr)
 	// 默认启动 HTTP 服务器
 	serveFn := func() error { return s.srv.ListenAndServe() }
+
 	if s.srv.TLSConfig != nil {
 		serveFn = func() error { return s.srv.ListenAndServeTLS("", "") }
 	}

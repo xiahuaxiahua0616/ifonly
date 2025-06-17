@@ -10,12 +10,14 @@ import (
 	genericoptions "github.com/onexstack/onexstack/pkg/options"
 	"github.com/onexstack/onexstack/pkg/store/where"
 	"github.com/xiahuaxiahua0616/ifonly/internal/apiserver/biz"
+	"github.com/xiahuaxiahua0616/ifonly/internal/apiserver/model"
 	"github.com/xiahuaxiahua0616/ifonly/internal/apiserver/store"
 	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/contextx"
 	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/log"
 	mw "github.com/xiahuaxiahua0616/ifonly/internal/pkg/middleware/grpc"
 	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/server"
 	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/validation"
+	"github.com/xiahuaxiahua0616/ifonly/pkg/auth"
 	"gorm.io/gorm"
 )
 
@@ -34,13 +36,14 @@ const (
 // Config 配置结构体，用于存储应用相关的配置.
 // 不用 viper.Get，是因为这种方式能更加清晰的知道应用提供了哪些配置项.
 type Config struct {
-	ServerMode   string
-	JWTKey       string
-	Expiration   time.Duration
-	TLSOptions   *genericoptions.TLSOptions
-	HTTPOptions  *genericoptions.HTTPOptions
-	GRPCOptions  *genericoptions.GRPCOptions
-	MySQLOptions *genericoptions.MySQLOptions
+	ServerMode        string
+	JWTKey            string
+	Expiration        time.Duration
+	EnableMemoryStore bool
+	TLSOptions        *genericoptions.TLSOptions
+	HTTPOptions       *genericoptions.HTTPOptions
+	GRPCOptions       *genericoptions.GRPCOptions
+	MySQLOptions      *genericoptions.MySQLOptions
 }
 
 // UserRetriever 定义一个用户数据获取器. 用来获取用户信息.
@@ -54,7 +57,7 @@ type ServerConfig struct {
 	biz       biz.IBiz
 	val       *validation.Validator
 	retriever mw.UserRetriever
-	// authz     *auth.Authz
+	authz     *auth.Authz
 }
 
 // UnionServer 定义一个联合服务器. 根据 ServerMode 决定要启动的服务器类型.
@@ -130,6 +133,11 @@ func (cfg *Config) NewUnionServer() (*UnionServer, error) {
 	return &UnionServer{srv: srv}, nil
 }
 
+// GetUser 根据用户 ID 获取用户信息.
+func (r *UserRetriever) GetUser(ctx context.Context, userID string) (*model.UserM, error) {
+	return r.store.User().Get(ctx, where.F("userID", userID))
+}
+
 // NewServerConfig 创建一个 *ServerConfig 实例.
 // 进阶：这里其实可以使用依赖注入的方式，来创建 *ServerConfig.
 func (cfg *Config) NewServerConfig() (*ServerConfig, error) {
@@ -141,19 +149,19 @@ func (cfg *Config) NewServerConfig() (*ServerConfig, error) {
 	store := store.NewStore(db)
 
 	// 初始化权限认证模块
-	// authz, err := auth.NewAuthz(store.DB(context.TODO()))
-	// if err != nil {
-	// 	return nil, err
-	// }
+	authz, err := auth.NewAuthz(store.DB(context.TODO()))
+	if err != nil {
+		return nil, err
+	}
 
 	return &ServerConfig{
 		cfg: cfg,
-		biz: biz.NewBiz(store),
+		biz: biz.NewBiz(store, authz),
 		val: validation.New(store),
 		retriever: &UserRetriever{
 			store: store,
 		},
-		// authz: authz,
+		authz: authz,
 	}, nil
 }
 

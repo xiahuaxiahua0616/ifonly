@@ -118,10 +118,10 @@ func (b *userBiz) Create(ctx context.Context, rq *apiv1.CreateUserRequest) (*api
 		return nil, err
 	}
 
-	// if _, err := b.authz.AddGroupingPolicy(userM.UserID, known.RoleUser); err != nil {
-	// 	log.W(ctx).Errorw("Failed to add grouping policy for user", "user", userM.UserID, "role", known.RoleUser)
-	// 	return nil, errno.ErrAddRole.WithMessage("%s", err.Error())
-	// }
+	if _, err := b.authz.AddGroupingPolicy(userM.UserID, known.RoleUser); err != nil {
+		log.W(ctx).Errorw("Failed to add grouping policy for user", "user", userM.UserID, "role", known.RoleUser)
+		return nil, errno.ErrAddRole.WithMessage("%s", err.Error())
+	}
 
 	return &apiv1.CreateUserResponse{UserID: userM.UserID}, nil
 }

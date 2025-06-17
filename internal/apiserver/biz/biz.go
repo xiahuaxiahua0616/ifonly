@@ -25,8 +25,8 @@ type biz struct {
 var _ IBiz = (*biz)(nil)
 
 // NewBiz 创建一个 IBiz 类型的实例.
-func NewBiz(store store.IStore) *biz {
-	return &biz{store: store}
+func NewBiz(store store.IStore, authz *auth.Authz) *biz {
+	return &biz{store: store, authz: authz}
 }
 
 // UserV1 返回一个实现了 UserBiz 接口的实例.
