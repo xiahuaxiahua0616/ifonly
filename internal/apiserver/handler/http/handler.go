@@ -2,7 +2,7 @@ package http
 
 import (
 	"github.com/xiahuaxiahua0616/ifonly/internal/apiserver/biz"
-	"github.com/xiahuaxiahua0616/ifonly/internal/pkg/validation"
+	"github.com/xiahuaxiahua0616/ifonly/internal/apiserver/pkg/validation"
 )
 
 // Handler 处理博客模块的请求.
