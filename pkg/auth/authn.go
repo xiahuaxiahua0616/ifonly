@@ -3,11 +3,11 @@ package auth
 import (
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
 	casbin "github.com/casbin/casbin/v2"
 	"github.com/casbin/casbin/v2/model"
 	adapter "github.com/casbin/gorm-adapter/v3"
+	"github.com/google/wire"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -41,22 +41,30 @@ func Compare(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
+// Authz 定义了一个授权器，提供授权功能.
 type Authz struct {
-	*casbin.SyncedEnforcer
+	*casbin.SyncedEnforcer // 使用 Casbin 的同步授权器
 }
 
+// Option 定义了一个函数选项类型，用于自定义 NewAuthz 的行为.
 type Option func(*authzConfig)
 
+// authzConfig 是授权器的配置结构.
 type authzConfig struct {
-	aclModel           string        // casbin的模型字符串
+	aclModel           string        // Casbin 的模型字符串
 	autoLoadPolicyTime time.Duration // 自动加载策略的时间间隔
 }
+
+// ProviderSet 是一个 Wire 的 Provider 集合，用于声明依赖注入的规则。
+// 包含 NewAuthz 构造函数，用于生成 Authz 实例。
+var ProviderSet = wire.NewSet(NewAuthz, DefaultOptions)
 
 // defaultAuthzConfig 返回一个默认的配置.
 func defaultAuthzConfig() *authzConfig {
 	return &authzConfig{
-		// 默认使用内置的ACL模型
-		aclModel:           defaultAclModel,
+		// 默认使用内置的 ACL 模型
+		aclModel: defaultAclModel,
+		// 默认的自动加载策略时间间隔
 		autoLoadPolicyTime: 5 * time.Second,
 	}
 }

@@ -24,7 +24,7 @@ func AuthnMiddleware(retriever UserRetriever) gin.HandlerFunc {
 		// 解析 JWT Token
 		userID, err := token.ParseRequest(c)
 		if err != nil {
-			core.WriteResponse(c, nil, errno.ErrTokenInvalid.WithMessage("%s", err.Error()))
+			core.WriteResponse(c, nil, errno.ErrTokenInvalid.WithMessage(err.Error()))
 			c.Abort()
 			return
 		}
@@ -33,7 +33,7 @@ func AuthnMiddleware(retriever UserRetriever) gin.HandlerFunc {
 
 		user, err := retriever.GetUser(c, userID)
 		if err != nil {
-			core.WriteResponse(c, nil, errno.ErrUnauthenticated.WithMessage("%s", err.Error()))
+			core.WriteResponse(c, nil, errno.ErrUnauthenticated.WithMessage(err.Error()))
 			c.Abort()
 			return
 		}
